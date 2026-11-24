@@ -812,6 +812,10 @@ class BaseSDTrainProcess(BaseTrainProcess):
     def before_dataset_load(self):
         pass
 
+    def needs_training_dataset(self, step: int) -> bool:
+        """Return false once a trainer has permanently switched to generated training data."""
+        return True
+
     def get_params(self):
         # you can extend this in subclass to get params
         # otherwise params will be gathered through normal means
@@ -2232,6 +2236,7 @@ class BaseSDTrainProcess(BaseTrainProcess):
 
         ### HOOk ###
         self.before_dataset_load()
+        load_training_data = self.needs_training_dataset(self.step_num)
         if getattr(self.sd, 'require_pixel_tensor_cache', False):
             # model needs pixel tensors at train time even with cached latents;
             # storing them changes the latent cache key (first run re-caches)
@@ -2249,12 +2254,12 @@ class BaseSDTrainProcess(BaseTrainProcess):
                         )
                         ds.cache_tensors_to_disk = True
         # load datasets if passed in the root process
-        if self.datasets is not None:
+        if load_training_data and self.datasets is not None:
             self.data_loader = get_dataloader_from_datasets(
                 self.datasets, self.train_config.batch_size, self.sd,
                 pool_datasets=self.train_config.pool_datasets,
             )
-        if self.datasets_reg is not None:
+        if load_training_data and self.datasets_reg is not None:
             self.data_loader_reg = get_dataloader_from_datasets(
                 self.datasets_reg, self.train_config.batch_size, self.sd,
                 pool_datasets=self.train_config.pool_datasets,
@@ -2547,6 +2552,10 @@ class BaseSDTrainProcess(BaseTrainProcess):
         did_first_flush = False
         flush_next = False
         for step in range(start_step_num, self.train_config.steps):
+            if (dataloader is not None or dataloader_reg is not None) and not self.needs_training_dataset(step):
+                dataloader_iterator = dataloader_iterator_reg = None
+                dataloader = dataloader_reg = None
+                self.data_loader = self.data_loader_reg = None
             if self.train_config.do_paramiter_swapping:
                 self.optimizer.optimizer.swap_paramiters()
             self.timer.start('train_loop')

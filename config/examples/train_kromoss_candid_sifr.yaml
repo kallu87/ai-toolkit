@@ -1,0 +1,71 @@
+job: extension
+config:
+  name: kromoss_candid_sifr
+  process:
+    - type: moss_image_sifr
+      training_folder: output
+      device: cuda:0
+      network:
+        type: lora
+        linear: 16
+        linear_alpha: 16
+      save:
+        dtype: bf16
+        save_every: 250
+        max_step_saves_to_keep: 6
+      datasets:
+        - folder_path: '/path/to/good_for_training'
+          caption_ext: txt
+          caption_dropout_rate: 0.05
+          shuffle_tokens: false
+          cache_latents_to_disk: true
+          resolution: [512, 768]
+      train:
+        steps: 5080
+        batch_size: 1
+        gradient_accumulation: 1
+        gradient_checkpointing: true
+        train_unet: true
+        train_text_encoder: false
+        cache_text_embeddings: true
+        disable_sampling: true
+        dtype: bf16
+        noise_scheduler: flowmatch
+        timestep_type: shift
+        lr_scheduler: constant
+        optimizer: adamw
+        optimizer_params:
+          weight_decay: 0.0
+        lr: 0.00003
+      model:
+        arch: moss_image
+        name_or_path: lodestones/Kromoss/diffusion_models/kromoss_int8_convrot.safetensors
+        quantize: true
+        qtype: convrot8
+        quantize_te: true
+        qtype_te: convrot8
+        low_vram: true
+        layer_offloading: true
+      sample:
+        samples: []
+      logging:
+        log_every: 1
+        use_ui_logger: true
+      sifr:
+        warmup_steps: 5000
+        rollout_every: 16
+        samples_per_prompt: 4
+        rollout_policy: ema
+        width: 512
+        height: 768
+        sample_steps: 30
+        guidance_scale: 3.0
+        seed: 42
+        prompts:
+          - 'Candid photorealistic smartphone photo of a woman at a busy produce market, turning to look at a vendor, natural daylight and everyday background detail.'
+          - 'Handheld evening photo of a woman in a bright sari holding a sparkler in an apartment courtyard, uneven light and a spontaneous smile.'
+          - 'Casual indoor mirror selfie of a woman in a simple patterned kurta, holding her phone near her face, ordinary room lighting and an imperfect crop.'
+          - 'Amateur phone photo of a woman in jeans and a striped shirt sitting on a park bench mid-laugh, loose framing and natural afternoon shade.'
+meta:
+  name: '[name]'
+  version: '1.0'

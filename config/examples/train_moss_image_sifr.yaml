@@ -1,0 +1,62 @@
+job: extension
+config:
+  name: moss_image_human_feedback
+  process:
+    - type: moss_image_sifr
+      training_folder: output
+      device: cuda:0
+      network:
+        type: lora
+        linear: 16
+        linear_alpha: 16
+        # pretrained_lora_path: path/to/your_moss_image_lora.safetensors
+      save:
+        dtype: bf16
+        save_every: 8
+        max_step_saves_to_keep: 4
+      datasets: []
+      train:
+        steps: 24
+        batch_size: 1
+        gradient_accumulation: 1
+        train_unet: true
+        train_text_encoder: false
+        gradient_checkpointing: true
+        disable_sampling: true # Standard previews only. SIFR still generates review images.
+        dtype: bf16
+        noise_scheduler: flowmatch
+        timestep_type: shift # Supervised warmup only.
+        optimizer: adamw
+        optimizer_params:
+          weight_decay: 0.0
+        lr: 0.00003
+      model:
+        arch: moss_image
+        name_or_path: OpenMOSS-Team/MOSS-Image-SFT
+        quantize: true
+        qtype: convrot8
+        quantize_te: true
+        qtype_te: convrot8
+        low_vram: true
+        layer_offloading: true
+      sample:
+        samples: []
+      logging:
+        log_every: 1
+        use_ui_logger: true
+      sifr:
+        rollout_every: 8 # Optimizer steps between reviews.
+        samples_per_prompt: 4
+        warmup_steps: 0 # Set a dataset and a positive count for supervised warmup.
+        rollout_policy: ema # Use live to roll out the exact current LoRA weights.
+        width: 512
+        height: 512
+        sample_steps: 20
+        guidance_scale: 3.0
+        seed: 42
+        prompts:
+          - 'A product photo of a ceramic mug printed with the words "NORTH SHORE" on a stone counter.'
+          - 'A blue and cream bakery poster with the headline "FRESH EVERY MORNING" and three illustrated pastries.'
+meta:
+  name: '[name]'
+  version: '1.0'

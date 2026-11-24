@@ -99,6 +99,7 @@ class MossImagePipeline:
         ref_latents: Optional[List[List[torch.Tensor]]] = None,
         isolate_refs: bool = False,
         sigmas: Optional[List[float]] = None,
+        return_latents: bool = False,
         **kwargs,
     ):
         model = self.model
@@ -163,4 +164,7 @@ class MossImagePipeline:
         images = images.float().clamp(-1.0, 1.0)
         images = ((images + 1.0) * 127.5).round().to(torch.uint8)
         images = images.permute(0, 2, 3, 1).cpu().numpy()
-        return [Image.fromarray(arr) for arr in images]
+        pil_images = [Image.fromarray(arr) for arr in images]
+        if return_latents:
+            return pil_images, latents
+        return pil_images

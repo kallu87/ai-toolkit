@@ -2,7 +2,7 @@
 
 import { useState, use } from 'react';
 import { FaChevronLeft } from 'react-icons/fa';
-import { MdDashboard, MdImage, MdShowChart, MdCode, MdExtension, MdNotes } from 'react-icons/md';
+import { MdDashboard, MdImage, MdShowChart, MdCode, MdExtension, MdNotes, MdStarRate } from 'react-icons/md';
 import { Button } from '@headlessui/react';
 import { TopBar, MainContent } from '@/components/layout';
 import useJob from '@/hooks/useJob';
@@ -15,10 +15,11 @@ import JobConfigViewer from '@/components/JobConfigViewer';
 import JobLossGraph from '@/components/JobLossGraph';
 import JobPlugin from '@/components/JobPlugin';
 import JobNotes from '@/components/JobNotes';
+import SIFRRatings from '@/components/SIFRRatings';
 import { Job } from '@prisma/client';
 import { apiClient } from '@/utils/api';
 
-type PageKey = 'overview' | 'samples' | 'config' | 'loss_log' | 'notes' | 'plugin';
+type PageKey = 'overview' | 'samples' | 'ratings' | 'config' | 'loss_log' | 'notes' | 'plugin';
 
 interface Page {
   name: string;
@@ -44,6 +45,14 @@ const pages: Page[] = [
     icon: MdImage,
     component: SampleImages,
     menuItem: SampleImagesMenu,
+    mainCss: 'pt-24',
+    jobTypes: ['train'],
+  },
+  {
+    name: 'Ratings',
+    value: 'ratings',
+    icon: MdStarRate,
+    component: SIFRRatings,
     mainCss: 'pt-24',
     jobTypes: ['train'],
   },
@@ -100,6 +109,7 @@ export default function JobPage({ params }: { params: { jobID: string } }) {
   const page = pages.find(p => p.value === pageKey);
 
   const jobType = job?.job_type || 'unknown';
+  const isSIFR = jobType === 'train' && JSON.parse(job?.job_config || '{}').config?.process?.[0]?.type === 'moss_image_sifr';
 
   let title = `Job: ${job?.name || 'Loading...'}`;
   if (jobType === 'caption') {
@@ -154,9 +164,13 @@ export default function JobPage({ params }: { params: { jobID: string } }) {
           if (page.value === 'plugin' && !hasPlugin) {
             return null;
           }
+          if (page.value === 'ratings' && !isSIFR) {
+            return null;
+          }
           return (
             <Button
               key={page.value}
+              aria-label={page.name}
               onClick={() => setPageKey(page.value)}
               className={`flex-1 sm:flex-initial justify-center px-2 sm:px-4 py-1 h-8 flex items-center gap-1.5 sm:flex-shrink-0 ${page.value === pageKey ? 'bg-gray-300 dark:bg-gray-700 text-white' : ''}`}
             >
